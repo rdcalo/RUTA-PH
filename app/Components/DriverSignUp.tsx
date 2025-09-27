@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput,
-  TouchableOpacity, 
-  StyleSheet, 
-  SafeAreaView, 
-  StatusBar,
-  Image,
-  Alert,
-  ScrollView
-} from 'react-native';
 import { router } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  Alert,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function DriverSignUp() {
   const [firstName, setFirstName] = useState('');
@@ -91,7 +92,7 @@ export default function DriverSignUp() {
             onPress={() => {}} // Already on driver page
           >
             <Image 
-              source={require('../../assets/images/RUTA PH Images/BUS ICON.png')}
+              source={require('../../assets/images/RUTA PH Images/BUS ICON2.png')}
               style={styles.roleIcon}
               resizeMode="contain"
             />

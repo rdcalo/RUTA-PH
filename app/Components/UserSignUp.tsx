@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import {
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -12,6 +11,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function UserSignUp() {
   const [firstName, setFirstName] = useState('');
@@ -76,7 +77,7 @@ export default function UserSignUp() {
             onPress={() => {}} // Already on commuter page
           >
             <Image 
-              source={require('../../assets/images/RUTA PH Images/COMMUTER ICON.png')}
+              source={require('../../assets/images/RUTA PH Images/COMMUTER ICON2.png')}
               style={styles.roleIcon}
               resizeMode="contain"
             />
