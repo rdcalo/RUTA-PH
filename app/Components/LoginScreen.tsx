@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { router } from 'expo-router';
+import { useState } from 'react';
 import {
   Alert,
   Image,
@@ -10,20 +11,37 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-
-import { router } from 'expo-router';
+import { signIn } from "../../firebase/authService";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-    console.log('Login attempted with:', email);
+    
+    setLoading(true);
+    try {
+      await signIn(email.trim().toLowerCase(), password);
+      router.replace('/');
+    } catch (error: any) {
+      let errorMessage = 'Login failed. Please check your credentials.';
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      }
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateAccount = () => {
@@ -67,6 +85,7 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              editable={!loading}
             />
           </View>
           
@@ -83,10 +102,12 @@ export default function LoginScreen() {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!loading}
               />
               <TouchableOpacity 
                 style={styles.eyeButton}
                 onPress={togglePasswordVisibility}
+                disabled={loading}
               >
                 <Text style={styles.eyeIcon}>
                   {showPassword ? '✖' : '👁'}
@@ -99,11 +120,14 @@ export default function LoginScreen() {
         {/* Login Button */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
-            style={styles.loginButton}
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
             onPress={handleLogin}
             activeOpacity={0.8}
+            disabled={loading}
           >
-            <Text style={styles.loginButtonText}>Log in</Text>
+            <Text style={styles.loginButtonText}>
+              {loading ? 'Signing In...' : 'Log in'}
+            </Text>
           </TouchableOpacity>
         </View>
         
@@ -213,6 +237,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#999999',
   },
   loginButtonText: {
     color: '#FFFFFF',

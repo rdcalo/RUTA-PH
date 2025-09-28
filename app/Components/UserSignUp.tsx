@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Image,
@@ -11,8 +11,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-
 import { SafeAreaView } from "react-native-safe-area-context";
+import { signUpCommuter } from "../../firebase/authService";
 
 export default function UserSignUp() {
   const [firstName, setFirstName] = useState('');
@@ -23,8 +23,9 @@ export default function UserSignUp() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!firstName || !lastName || !email || !phoneNumber || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
@@ -33,8 +34,43 @@ export default function UserSignUp() {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
-    // TODO: Implement signup logic
-    console.log('Commuter signup attempted');
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await signUpCommuter({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim().toLowerCase(),
+        phoneNumber: phoneNumber.trim(),
+        userType: 'commuter'
+      }, password);
+      
+      Alert.alert('Success', 'Account created successfully!', [
+        { text: 'OK', onPress: () => router.replace('/') }
+      ]);
+    } catch (error: any) {
+      let errorMessage = 'Failed to create account';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email is already registered';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      }
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSwitchToDriver = () => {
@@ -87,6 +123,7 @@ export default function UserSignUp() {
           <TouchableOpacity 
             style={styles.roleButton}
             onPress={handleSwitchToDriver}
+            disabled={loading}
           >
             <Image 
               source={require('../../assets/images/RUTA PH Images/BUS ICON.png')}
@@ -111,6 +148,7 @@ export default function UserSignUp() {
               placeholder="Enter your first name"
               placeholderTextColor="#999999"
               autoCapitalize="words"
+              editable={!loading}
             />
           </View>
 
@@ -124,6 +162,7 @@ export default function UserSignUp() {
               placeholder="Enter your last name"
               placeholderTextColor="#999999"
               autoCapitalize="words"
+              editable={!loading}
             />
           </View>
 
@@ -138,6 +177,7 @@ export default function UserSignUp() {
               placeholderTextColor="#999999"
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!loading}
             />
           </View>
 
@@ -151,6 +191,7 @@ export default function UserSignUp() {
               placeholder="+63 9XX XXX XXXX"
               placeholderTextColor="#999999"
               keyboardType="phone-pad"
+              editable={!loading}
             />
           </View>
 
@@ -166,10 +207,12 @@ export default function UserSignUp() {
                 placeholderTextColor="#999999"
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                editable={!loading}
               />
               <TouchableOpacity 
                 style={styles.eyeButton}
                 onPress={togglePasswordVisibility}
+                disabled={loading}
               >
                 <Text style={styles.eyeIcon}>
                   {showPassword ? '🙈' : '👁️'}
@@ -190,10 +233,12 @@ export default function UserSignUp() {
                 placeholderTextColor="#999999"
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
+                editable={!loading}
               />
               <TouchableOpacity 
                 style={styles.eyeButton}
                 onPress={toggleConfirmPasswordVisibility}
+                disabled={loading}
               >
                 <Text style={styles.eyeIcon}>
                   {showConfirmPassword ? '🙈' : '👁️'}
@@ -205,11 +250,14 @@ export default function UserSignUp() {
 
         {/* Sign Up Button */}
         <TouchableOpacity 
-          style={styles.signUpButton}
+          style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
           onPress={handleSignUp}
           activeOpacity={0.8}
+          disabled={loading}
         >
-          <Text style={styles.signUpButtonText}>Log in</Text>
+          <Text style={styles.signUpButtonText}>
+            {loading ? 'Creating Account...' : 'Sign Up'}
+          </Text>
         </TouchableOpacity>
 
         {/* Login Link */}
@@ -347,6 +395,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 24,
+  },
+  signUpButtonDisabled: {
+    backgroundColor: '#999999',
   },
   signUpButtonText: {
     color: '#FFFFFF',
