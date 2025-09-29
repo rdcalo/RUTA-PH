@@ -1,418 +1,361 @@
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+// app/Components/DriverSignUp.tsx
+// UPDATED WITH FIREBASE INTEGRATION
+
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
-  Image,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
+import { registerUser } from '../../authService';
 
-import { SafeAreaView } from "react-native-safe-area-context";
+const DriverSignUp = () => {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    fullName: '',
+    username: '',
+    email: '',
+    phoneNumber: '',
+    password: '',
+    confirmPassword: '',
+    licenseNumber: '',
+    plateNumber: '',
+  });
+  const [loading, setLoading] = useState(false);
 
-export default function DriverSignUp() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [licenseNumber, setLicenseNumber] = useState('');
-  const [vehicleDetails, setVehicleDetails] = useState('');
-  const [plateNumber, setPlateNumber] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // Handle input change
+  const handleInputChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
+  };
 
-  const handleSignUp = () => {
-    if (!firstName || !lastName || !email || !phoneNumber || !licenseNumber || !vehicleDetails || !plateNumber || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
+  // Validate form
+  const validateForm = (): boolean => {
+    if (!formData.fullName.trim()) {
+      Alert.alert('Error', 'Please enter your full name');
+      return false;
     }
-    if (password !== confirmPassword) {
+
+    if (!formData.username.trim()) {
+      Alert.alert('Error', 'Please enter a username');
+      return false;
+    }
+
+    if (!formData.email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
+      return false;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return false;
+    }
+
+    if (!formData.phoneNumber.trim()) {
+      Alert.alert('Error', 'Please enter your phone number');
+      return false;
+    }
+
+    if (!formData.password) {
+      Alert.alert('Error', 'Please enter a password');
+      return false;
+    }
+
+    if (formData.password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
+      return false;
+    }
+
+    if (!formData.licenseNumber.trim()) {
+      Alert.alert('Error', 'Please enter your license number');
+      return false;
+    }
+
+    if (!formData.plateNumber.trim()) {
+      Alert.alert('Error', 'Please enter your vehicle plate number');
+      return false;
+    }
+
+    return true;
+  };
+
+  // Handle Sign Up
+  const handleSignUp = async () => {
+    if (!validateForm()) {
       return;
     }
-    // TODO: Implement driver signup logic
-    console.log('Driver signup attempted');
-  };
 
-  const handleSwitchToCommuter = () => {
-    router.push('/user-signup');
-  };
+    setLoading(true);
 
-  const handleLogin = () => {
-    router.push('/login');
-  };
+    try {
+      // Additional driver-specific data
+      const additionalData = {
+        fullName: formData.fullName.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        licenseNumber: formData.licenseNumber.trim(),
+        plateNumber: formData.plateNumber.trim(),
+        createdAt: new Date().toISOString(),
+        isVerified: false, // Can be verified by admin later
+      };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+      // Register driver
+      const result = await registerUser(
+        formData.email.trim(),
+        formData.password,
+        formData.username.trim(),
+        'driver',
+        additionalData
+      );
 
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
+      if (result.success) {
+        Alert.alert(
+          'Success',
+          'Driver account created successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // TODO: Navigate to Driver Home or Login
+                // router.push('/driver-home');
+                router.push('/login');
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Failed to create account');
+      }
+    } catch (error) {
+      console.error('Sign up error:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#E4E2DD" />
-      
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <Image 
-            source={require('../../assets/images/RUTA PH Images/RUTA BUS ICON.png')}
-            style={styles.logo}
-            resizeMode="contain"
+    <ScrollView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Driver Sign Up</Text>
+        <Text style={styles.subtitle}>Create your driver account</Text>
+
+        {/* Full Name */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Full Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your full name"
+            placeholderTextColor="#999"
+            value={formData.fullName}
+            onChangeText={(value) => handleInputChange('fullName', value)}
+            editable={!loading}
           />
         </View>
 
-        {/* Title */}
-        <Text style={styles.title}>Sign up</Text>
-
-        {/* Role Toggle */}
-        <View style={styles.roleToggleContainer}>
-          <TouchableOpacity 
-            style={styles.roleButton}
-            onPress={handleSwitchToCommuter}
-          >
-            <Image 
-              source={require('../../assets/images/RUTA PH Images/COMMUTER ICON.png')}
-              style={styles.roleIcon}
-              resizeMode="contain"
-            />
-            <Text style={styles.roleText}>I&apos;m a commuter</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.roleButton, styles.activeRoleButton]}
-            onPress={() => {}} // Already on driver page
-          >
-            <Image 
-              source={require('../../assets/images/RUTA PH Images/BUS ICON2.png')}
-              style={styles.roleIcon}
-              resizeMode="contain"
-            />
-            <Text style={[styles.roleText, styles.activeRoleText]}>I&apos;m a driver</Text>
-          </TouchableOpacity>
+        {/* Username */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Username</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Choose a username"
+            placeholderTextColor="#999"
+            value={formData.username}
+            onChangeText={(value) => handleInputChange('username', value)}
+            autoCapitalize="none"
+            editable={!loading}
+          />
         </View>
 
-        {/* Form Fields */}
-        <View style={styles.formContainer}>
-          <Text style={styles.sectionTitle}>Basic Information</Text>
-          
-          {/* First Name */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>First Name</Text>
-            <TextInput
-              style={styles.textInput}
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="Enter your first name"
-              placeholderTextColor="#999999"
-              autoCapitalize="words"
-            />
-          </View>
+        {/* Email */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your email"
+            placeholderTextColor="#999"
+            value={formData.email}
+            onChangeText={(value) => handleInputChange('email', value)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!loading}
+          />
+        </View>
 
-          {/* Last Name */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Last Name</Text>
-            <TextInput
-              style={styles.textInput}
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder="Enter your last name"
-              placeholderTextColor="#999999"
-              autoCapitalize="words"
-            />
-          </View>
+        {/* Phone Number */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Phone Number</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your phone number"
+            placeholderTextColor="#999"
+            value={formData.phoneNumber}
+            onChangeText={(value) => handleInputChange('phoneNumber', value)}
+            keyboardType="phone-pad"
+            editable={!loading}
+          />
+        </View>
 
-          {/* Email */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Email</Text>
-            <TextInput
-              style={styles.textInput}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="example@gmail.com"
-              placeholderTextColor="#999999"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
+        {/* License Number */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Driver's License Number</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your license number"
+            placeholderTextColor="#999"
+            value={formData.licenseNumber}
+            onChangeText={(value) => handleInputChange('licenseNumber', value)}
+            editable={!loading}
+          />
+        </View>
 
-          {/* Phone Number */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Phone Number</Text>
-            <TextInput
-              style={styles.textInput}
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              placeholder="+63 9XX XXX XXXX"
-              placeholderTextColor="#999999"
-              keyboardType="phone-pad"
-            />
-          </View>
+        {/* Plate Number */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Vehicle Plate Number</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your plate number"
+            placeholderTextColor="#999"
+            value={formData.plateNumber}
+            onChangeText={(value) => handleInputChange('plateNumber', value)}
+            autoCapitalize="characters"
+            editable={!loading}
+          />
+        </View>
 
-          {/* License Number */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Driver&apos;s License</Text>
-            <TextInput
-              style={styles.textInput}
-              value={licenseNumber}
-              onChangeText={setLicenseNumber}
-              placeholder="Enter license number"
-              placeholderTextColor="#999999"
-              autoCapitalize="characters"
-            />
-          </View>
+        {/* Password */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Password</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Create a password"
+            placeholderTextColor="#999"
+            value={formData.password}
+            onChangeText={(value) => handleInputChange('password', value)}
+            secureTextEntry
+            autoCapitalize="none"
+            editable={!loading}
+          />
+        </View>
 
-          {/* Vehicle Details */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Vehicle Details</Text>
-            <TextInput
-              style={styles.textInput}
-              value={vehicleDetails}
-              onChangeText={setVehicleDetails}
-              placeholder="e.g., Toyota Jeepney"
-              placeholderTextColor="#999999"
-              autoCapitalize="words"
-            />
-          </View>
-
-          {/* Plate Number */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Plate Number</Text>
-            <TextInput
-              style={styles.textInput}
-              value={plateNumber}
-              onChangeText={setPlateNumber}
-              placeholder="ABC-1234"
-              placeholderTextColor="#999999"
-              autoCapitalize="characters"
-            />
-          </View>
-
-          {/* Password */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Create password</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                placeholderTextColor="#999999"
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity 
-                style={styles.eyeButton}
-                onPress={togglePasswordVisibility}
-              >
-                <Text style={styles.eyeIcon}>
-                  {showPassword ? '🙈' : '👁️'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Confirm Password */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Confirm password</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="••••••••"
-                placeholderTextColor="#999999"
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity 
-                style={styles.eyeButton}
-                onPress={toggleConfirmPasswordVisibility}
-              >
-                <Text style={styles.eyeIcon}>
-                  {showConfirmPassword ? '🙈' : '👁️'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        {/* Confirm Password */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Confirm Password</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Re-enter your password"
+            placeholderTextColor="#999"
+            value={formData.confirmPassword}
+            onChangeText={(value) => handleInputChange('confirmPassword', value)}
+            secureTextEntry
+            autoCapitalize="none"
+            editable={!loading}
+          />
         </View>
 
         {/* Sign Up Button */}
-        <TouchableOpacity 
-          style={styles.signUpButton}
+        <TouchableOpacity
+          style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
           onPress={handleSignUp}
-          activeOpacity={0.8}
+          disabled={loading}
         >
-          <Text style={styles.signUpButtonText}>Log in</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.signUpButtonText}>Sign Up</Text>
+          )}
         </TouchableOpacity>
 
         {/* Login Link */}
         <View style={styles.loginContainer}>
-          <Text style={styles.loginText}>
-            Have an account?{' '}
-            <Text 
-              style={styles.loginLink}
-              onPress={handleLogin}
-            >
-              Login Now!
-            </Text>
-          </Text>
+          <Text style={styles.loginText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => router.push('/login')}>
+            <Text style={styles.loginLink}>Login</Text>
+          </TouchableOpacity>
         </View>
-
-        {/* Bottom indicator */}
-        <View style={styles.bottomIndicator} />
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E4E2DD',
+    backgroundColor: '#fff',
   },
-  scrollContent: {
-    paddingHorizontal: 32,
+  content: {
+    padding: 20,
     paddingTop: 40,
-    paddingBottom: 20,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  logo: {
-    width: 80,
-    height: 60,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1E1E1E',
-    marginBottom: 20,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
   },
-  roleToggleContainer: {
-    flexDirection: 'row',
-    marginBottom: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 8,
-    padding: 4,
-  },
-  roleButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  activeRoleButton: {
-    backgroundColor: '#1E1E1E',
-  },
-  roleIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 8,
-  },
-  roleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666666',
-  },
-  activeRoleText: {
-    color: '#FFFFFF',
-  },
-  formContainer: {
-    marginBottom: 30,
-  },
-  sectionTitle: {
+  subtitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1E1E1E',
-    marginBottom: 20,
+    color: '#666',
+    marginBottom: 30,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
-  inputLabel: {
+  label: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#1E1E1E',
-    marginBottom: 8,
-  },
-  textInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 16,
-    color: '#1E1E1E',
-    borderWidth: 1,
-    borderColor: 'rgba(30, 30, 30, 0.1)',
-  },
-  passwordContainer: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  passwordInput: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 16,
-    color: '#1E1E1E',
-    borderWidth: 1,
-    borderColor: 'rgba(30, 30, 30, 0.1)',
-    paddingRight: 50,
-  },
-  eyeButton: {
-    position: 'absolute',
-    right: 16,
-    padding: 4,
-  },
-  eyeIcon: {
-    fontSize: 18,
-  },
-  signUpButton: {
-    backgroundColor: '#1E1E1E',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  signUpButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: '#333',
+    marginBottom: 5,
     fontWeight: '600',
   },
-  loginContainer: {
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 15,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  signUpButton: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 10,
     alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  signUpButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  signUpButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     marginBottom: 30,
   },
   loginText: {
-    fontSize: 16,
-    color: '#666666',
+    color: '#666',
+    fontSize: 14,
   },
   loginLink: {
-    color: '#1E1E1E',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
-  bottomIndicator: {
-    width: 134,
-    height: 5,
-    backgroundColor: '#1E1E1E',
-    borderRadius: 2.5,
-    alignSelf: 'center',
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
+
+export default DriverSignUp;
