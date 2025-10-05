@@ -93,8 +93,6 @@ export default function SignUpRole() {
           </Text>
         </View>
         
-        {/* Bottom indicator */}
-        <View style={styles.bottomIndicator} />
       </View>
     </SafeAreaView>
   );
@@ -170,13 +168,5 @@ const styles = StyleSheet.create({
     color: '#1E1E1E',
     fontWeight: '600',
     textDecorationLine: 'underline',
-  },
-  bottomIndicator: {
-    width: 134,
-    height: 5,
-    backgroundColor: '#1E1E1E',
-    borderRadius: 2.5,
-    alignSelf: 'center',
-    marginBottom: 8,
   },
 });

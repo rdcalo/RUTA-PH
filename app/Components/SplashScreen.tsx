@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import {
-    Animated,
-    Image,
-    StatusBar,
-    StyleSheet,
-    View
+  Animated,
+  Image,
+  StatusBar,
+  StyleSheet,
+  View
 } from 'react-native';
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -64,8 +64,6 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
           />
         </Animated.View>
         
-        {/* Bottom indicator */}
-        <View style={styles.bottomIndicator} />
       </View>
     </SafeAreaView>
   );
@@ -92,12 +90,5 @@ const styles = StyleSheet.create({
     width: 200,
     height: 150,
   },
-  bottomIndicator: {
-    width: 134,
-    height: 5,
-    backgroundColor: '#1E1E1E',
-    borderRadius: 2.5,
-    alignSelf: 'center',
-    marginBottom: 8,
-  },
+
 });

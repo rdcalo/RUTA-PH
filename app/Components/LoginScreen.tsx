@@ -1,45 +1,49 @@
-// app/Components/LoginScreen.tsx
-// This component handles login with Firebase and error handling
-
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from '../../firebase/firebaseConfig';
 
-const LoginScreen = () => {
-  const router = useRouter();
-  
-  // These hold the login form data
+export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // This function runs when user clicks "Sign In"
   const handleLogin = async () => {
-    // 🔍 STEP 1: Check if fields are filled
+    // Validate fields
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password');
       return;
     }
 
-    // 🔍 STEP 2: Check if email format is valid
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
 
-    // ⏳ Show loading spinner
     setLoading(true);
 
     try {
-      // 🔥 STEP 3: Try to sign in with Firebase Authentication
+      // Sign in with Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 🔥 STEP 4: Check if user is a commuter or driver
+      // Check if user is a commuter or driver
       let userRole = null;
       let userData = null;
 
@@ -55,14 +59,12 @@ const LoginScreen = () => {
           userRole = 'driver';
           userData = driverDoc.data();
           
-          // 🔍 STEP 5: Check if driver is approved
+          // Check if driver is approved
           if (!userData.isApproved) {
-            // Sign out the driver
             await auth.signOut();
             Alert.alert(
               'Account Pending Approval',
-              'Your driver account is waiting for approval. Please contact support.',
-              [{ text: 'OK' }]
+              'Your driver account is waiting for approval. Please contact support.'
             );
             setLoading(false);
             return;
@@ -70,43 +72,29 @@ const LoginScreen = () => {
         }
       }
 
-      // 🔍 STEP 6: If user not found in either collection
+      // If user not found in either collection
       if (!userRole) {
         await auth.signOut();
         Alert.alert(
           'Account Not Found',
-          'Your account data is incomplete. Please contact support.',
-          [{ text: 'OK' }]
+          'Your account data is incomplete. Please contact support.'
         );
         setLoading(false);
         return;
       }
 
-      // ✅ STEP 7: Login successful!
-      Alert.alert(
-        'Welcome!',
-        `Welcome back, ${userData.firstName}!`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate based on user role
-              if (userRole === 'commuter') {
-                // TODO: Navigate to commuter home screen
-                // router.push('/commuter-home');
-                console.log('Navigate to commuter home');
-              } else {
-                // TODO: Navigate to driver home screen
-                // router.push('/driver-home');
-                console.log('Navigate to driver home');
-              }
-            }
-          }
-        ]
-      );
+      // Login successful - navigate based on role
+      if (userRole === 'commuter') {
+        // TODO: Navigate to commuter dashboard
+        //router.push('/commuter-home');
+        console.log('Navigate to commuter home');
+      } else {
+        // TODO: Navigate to driver dashboard
+        //router.push('/driver-home');
+        console.log('Navigate to driver home');
+      }
 
     } catch (error: any) {
-      // ❌ Something went wrong! Show friendly error messages
       console.error('Login error:', error);
       
       let errorTitle = 'Login Failed';
@@ -130,154 +118,221 @@ const LoginScreen = () => {
       
       Alert.alert(errorTitle, errorMessage);
     } finally {
-      // ⏳ Hide loading spinner
       setLoading(false);
     }
   };
 
+  const handleCreateAccount = () => {
+    router.push('/signuprole');
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>RUTA</Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#E4E2DD" />
+      
+      <View style={styles.content}>
+        {/* Logo Area */}
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../../assets/images/RUTA PH Images/MAIN LOGO.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
-      </View>
-
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>Sign In</Text>
-        <Text style={styles.subtitle}>Hi! Welcome back, you've been missed</Text>
-
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="example@gmail.com"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          editable={!loading}
-        />
-
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          editable={!loading}
-        />
-
-        <TouchableOpacity>
-          <Text style={styles.forgotPassword}>Forgot Password?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.buttonText}>Sign In</Text>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => router.push('/signuprole')}>
-            <Text style={styles.signUpLink}>Sign Up</Text>
+        
+        {/* Login Title */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Log in</Text>
+        </View>
+        
+        {/* Form Container */}
+        <View style={styles.formContainer}>
+          {/* Email Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Email address</Text>
+            <TextInput
+              style={styles.textInput}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="helloworld@gmail.com"
+              placeholderTextColor="#999999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!loading}
+            />
+          </View>
+          
+          {/* Password Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Password</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#999999"
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+              <TouchableOpacity 
+                style={styles.eyeButton}
+                onPress={togglePasswordVisibility}
+                disabled={loading}
+              >
+                <Text style={styles.eyeIcon}>
+                  {showPassword ? '🙈' : '👁️'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+        
+        {/* Login Button */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+            onPress={handleLogin}
+            activeOpacity={0.8}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.loginButtonText}>Log in</Text>
+            )}
           </TouchableOpacity>
         </View>
+        
+        {/* Create Account Link */}
+        <View style={styles.createAccountContainer}>
+          <Text style={styles.createAccountText}>
+            Don&apos;t have an account?{' '}
+            <Text 
+              style={styles.createAccountLink}
+              onPress={handleCreateAccount}
+            >
+              Create one now!
+            </Text>
+          </Text>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#E4E2DD',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 32,
+    justifyContent: 'space-between',
+    paddingTop: 40,
+    paddingBottom: 20,
   },
   logoContainer: {
     alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 40,
+    marginBottom: 40,
   },
   logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'black',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 200,
+    height: 180,
   },
-  logoText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  formContainer: {
-    padding: 20,
+  titleContainer: {
+    marginBottom: 40,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 30,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#1E1E1E',
     marginBottom: 8,
   },
-  input: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  formContainer: {
+    flex: 1,
+    justifyContent: 'flex-start',
   },
-  forgotPassword: {
-    color: '#666',
-    textAlign: 'right',
-    marginBottom: 20,
-    textDecorationLine: 'underline',
+  inputContainer: {
+    marginBottom: 24,
   },
-  button: {
-    backgroundColor: 'black',
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 10,
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E1E1E',
+    marginBottom: 8,
   },
-  buttonDisabled: {
-    backgroundColor: '#666',
-  },
-  buttonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
+  textInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     fontSize: 16,
+    color: '#1E1E1E',
+    borderWidth: 1,
+    borderColor: 'rgba(30, 30, 30, 0.1)',
   },
-  footer: {
+  passwordContainer: {
+    position: 'relative',
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
+    alignItems: 'center',
   },
-  footerText: {
-    color: '#666',
+  passwordInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: '#1E1E1E',
+    borderWidth: 1,
+    borderColor: 'rgba(30, 30, 30, 0.1)',
+    paddingRight: 50,
   },
-  signUpLink: {
-    color: 'black',
-    fontWeight: 'bold',
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    padding: 4,
+  },
+  eyeIcon: {
+    fontSize: 18,
+  },
+  buttonContainer: {
+    marginBottom: 24,
+  },
+  loginButton: {
+    backgroundColor: '#1E1E1E',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#666666',
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  createAccountContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  createAccountText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  createAccountLink: {
+    color: '#1E1E1E',
+    fontWeight: '600',
     textDecorationLine: 'underline',
   },
 });
-
-export default LoginScreen;

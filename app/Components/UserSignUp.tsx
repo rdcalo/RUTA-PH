@@ -1,61 +1,67 @@
-// app/Components/UserSignUp.tsx
-// This component handles COMMUTER sign up with Firebase
-
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from '../../firebase/firebaseConfig';
 
-const UserSignUp = () => {
-  const router = useRouter();
-  
-  // These hold the form data
+export default function UserSignUp() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // This function runs when user clicks "Sign Up"
   const handleSignUp = async () => {
-    // 🔍 STEP 1: Check if all fields are filled
+    // Validate all fields
     if (!firstName || !lastName || !email || !phoneNumber || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-
-    // 🔍 STEP 2: Check if passwords match
+    
+    // Check password match
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
-    // 🔍 STEP 3: Check if password is strong enough (at least 6 characters)
+    // Check password length
     if (password.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
-    // 🔍 STEP 4: Check phone number format (should be Philippine format)
+    // Check phone number format
     const phoneRegex = /^(\+63|0)\d{10}$/;
     if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
       Alert.alert('Error', 'Please enter a valid Philippine phone number');
       return;
     }
 
-    // ⏳ Show loading spinner
     setLoading(true);
 
     try {
-      // 🔥 STEP 5: Create user account in Firebase Authentication
+      // Create commuter account in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 🔥 STEP 6: Save additional user info to Firestore Database
+      // Save commuter info to Firestore Database
       await setDoc(doc(db, 'commuters', user.uid), {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -66,16 +72,12 @@ const UserSignUp = () => {
         userId: user.uid
       });
 
-      // ✅ Success! Show message and go to next screen
-      Alert.alert('Success', 'Account created successfully!', [
-        { text: 'OK', onPress: () => router.push('/login') }
-      ]);
-
-    } catch (error: any) {
-      // ❌ Something went wrong! Show error message
-      console.error('Sign up error:', error);
+      // Success! Navigate to welcome screen
+      router.push('/commuterwelcome');
       
-      // Show friendly error messages
+    } catch (error: any) {
+      console.error('Commuter sign up error:', error);
+      
       let errorMessage = 'An error occurred. Please try again.';
       
       if (error.code === 'auth/email-already-in-use') {
@@ -90,188 +92,351 @@ const UserSignUp = () => {
       
       Alert.alert('Sign Up Failed', errorMessage);
     } finally {
-      // ⏳ Hide loading spinner
       setLoading(false);
     }
   };
 
+  const handleSwitchToDriver = () => {
+    router.push('/driver-signup');
+  };
+
+  const handleLogin = () => {
+    router.push('/login');
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.headerContainer}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#E4E2DD" />
+      
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('../../assets/images/RUTA PH Images/RUTA BUS ICON.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Title */}
         <Text style={styles.title}>Sign up</Text>
-      </View>
 
-      <View style={styles.tabContainer}>
-        <TouchableOpacity style={styles.activeTab}>
-          <Text style={styles.activeTabText}>I'm a commuter</Text>
-        </TouchableOpacity>
+        {/* Role Toggle */}
+        <View style={styles.roleToggleContainer}>
+          <TouchableOpacity 
+            style={[styles.roleButton, styles.activeRoleButton]}
+            disabled={loading}
+          >
+            <Image 
+              source={require('../../assets/images/RUTA PH Images/COMMUTER ICON2.png')}
+              style={styles.roleIcon}
+              resizeMode="contain"
+            />
+            <Text style={[styles.roleText, styles.activeRoleText]}>I&apos;m a commuter</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.roleButton}
+            onPress={handleSwitchToDriver}
+            disabled={loading}
+          >
+            <Image 
+              source={require('../../assets/images/RUTA PH Images/BUS ICON.png')}
+              style={styles.roleIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.roleText}>I&apos;m a driver</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Form Fields */}
+        <View style={styles.formContainer}>
+          <Text style={styles.sectionTitle}>Basic Information</Text>
+          
+          {/* First Name */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>First Name</Text>
+            <TextInput
+              style={styles.textInput}
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="Enter your first name"
+              placeholderTextColor="#999999"
+              autoCapitalize="words"
+              editable={!loading}
+            />
+          </View>
+
+          {/* Last Name */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Last Name</Text>
+            <TextInput
+              style={styles.textInput}
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Enter your last name"
+              placeholderTextColor="#999999"
+              autoCapitalize="words"
+              editable={!loading}
+            />
+          </View>
+
+          {/* Email */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Email</Text>
+            <TextInput
+              style={styles.textInput}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="example@gmail.com"
+              placeholderTextColor="#999999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!loading}
+            />
+          </View>
+
+          {/* Phone Number */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Phone Number</Text>
+            <TextInput
+              style={styles.textInput}
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              placeholder="+63 9XX XXX XXXX"
+              placeholderTextColor="#999999"
+              keyboardType="phone-pad"
+              editable={!loading}
+            />
+          </View>
+
+          {/* Password */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Create password</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#999999"
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                editable={!loading}
+              />
+              <TouchableOpacity 
+                style={styles.eyeButton}
+                onPress={togglePasswordVisibility}
+                disabled={loading}
+              >
+                <Text style={styles.eyeIcon}>
+                  {showPassword ? '🙈' : '👁️'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Confirm Password */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Confirm password</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#999999"
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                editable={!loading}
+              />
+              <TouchableOpacity 
+                style={styles.eyeButton}
+                onPress={toggleConfirmPasswordVisibility}
+                disabled={loading}
+              >
+                <Text style={styles.eyeIcon}>
+                  {showConfirmPassword ? '🙈' : '👁️'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Sign Up Button */}
         <TouchableOpacity 
-          style={styles.inactiveTab}
-          onPress={() => router.push('/driver-signup')}
+          style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
+          onPress={handleSignUp}
+          activeOpacity={0.8}
+          disabled={loading}
         >
-          <Text style={styles.inactiveTabText}>I'm a driver</Text>
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.signUpButtonText}>Sign up</Text>
+          )}
         </TouchableOpacity>
-      </View>
 
-      <Text style={styles.sectionTitle}>Basic Information</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your first name"
-        value={firstName}
-        onChangeText={setFirstName}
-        editable={!loading}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your last name"
-        value={lastName}
-        onChangeText={setLastName}
-        editable={!loading}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="example@gmail.com"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        editable={!loading}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="+63 XXX XXX XXXX"
-        value={phoneNumber}
-        onChangeText={setPhoneNumber}
-        keyboardType="phone-pad"
-        editable={!loading}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Create password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        editable={!loading}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-        editable={!loading}
-      />
-
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSignUp}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text style={styles.buttonText}>Log in</Text>
-        )}
-      </TouchableOpacity>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Have an account? </Text>
-        <TouchableOpacity onPress={() => router.push('/login')}>
-          <Text style={styles.loginLink}>Login Now!</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        {/* Login Link */}
+        <View style={styles.loginContainer}>
+          <Text style={styles.loginText}>
+            Have an account?{' '}
+            <Text 
+              style={styles.loginLink}
+              onPress={handleLogin}
+            >
+              Login Now!
+            </Text>
+          </Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#E4E2DD',
   },
-  headerContainer: {
+  scrollContent: {
+    paddingHorizontal: 32,
+    paddingTop: 40,
+    paddingBottom: 20,
+  },
+  logoContainer: {
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  logo: {
+    width: 150,
+    height: 120,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  tabContainer: {
-    flexDirection: 'row',
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#1E1E1E',
     marginBottom: 20,
   },
-  activeTab: {
+  roleToggleContainer: {
+    flexDirection: 'row',
+    marginBottom: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 8,
+    padding: 4,
+  },
+  roleButton: {
     flex: 1,
-    backgroundColor: 'black',
-    padding: 15,
-    borderRadius: 5,
-    marginRight: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 6,
   },
-  inactiveTab: {
-    flex: 1,
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 5,
-    marginLeft: 5,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  activeRoleButton: {
+    backgroundColor: '#1E1E1E',
   },
-  activeTabText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
+  roleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 8,
   },
-  inactiveTabText: {
-    color: 'black',
-    textAlign: 'center',
+  roleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666666',
+  },
+  activeRoleText: {
+    color: '#FFFFFF',
+  },
+  formContainer: {
+    marginBottom: 30,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontWeight: '600',
+    color: '#1E1E1E',
+    marginBottom: 20,
   },
-  input: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 10,
+  inputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E1E1E',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: '#1E1E1E',
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: 'rgba(30, 30, 30, 0.1)',
   },
-  button: {
-    backgroundColor: 'black',
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 20,
-  },
-  buttonDisabled: {
-    backgroundColor: '#666',
-  },
-  buttonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  footer: {
+  passwordContainer: {
+    position: 'relative',
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
+    alignItems: 'center',
   },
-  footerText: {
-    color: '#666',
+  passwordInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: '#1E1E1E',
+    borderWidth: 1,
+    borderColor: 'rgba(30, 30, 30, 0.1)',
+    paddingRight: 50,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    padding: 4,
+  },
+  eyeIcon: {
+    fontSize: 18,
+  },
+  signUpButton: {
+    backgroundColor: '#1E1E1E',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  signUpButtonDisabled: {
+    backgroundColor: '#666666',
+  },
+  signUpButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loginContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  loginText: {
+    fontSize: 16,
+    color: '#666666',
   },
   loginLink: {
-    color: 'black',
-    fontWeight: 'bold',
+    color: '#1E1E1E',
+    fontWeight: '600',
     textDecorationLine: 'underline',
   },
 });
-
-export default UserSignUp;
